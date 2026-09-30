@@ -29,6 +29,13 @@ export interface FocusSessionItem {
   startedAt: string;
   endedAt: string;
   createdAt: string;
+  distractionCount: number | null;
+  awaySeconds: number | null;
+}
+
+export interface ShieldStats {
+  distractionCount: number;
+  awaySeconds: number;
 }
 
 export type AudioProvider = "spotify" | "youtube" | "custom" | "none";

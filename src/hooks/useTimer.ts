@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { toDayKey } from "@/lib/day";
 
 interface UseTimerOptions {
   onSessionLogged?: () => void;
+  onReset?: () => void;
   minDurationSeconds?: number;
 }
 
 export function useTimer(options: UseTimerOptions = {}) {
-  const { onSessionLogged, minDurationSeconds = 10 } = options;
+  const { onSessionLogged, onReset, minDurationSeconds = 10 } = options;
 
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -47,11 +49,13 @@ export function useTimer(options: UseTimerOptions = {}) {
   }, [isRunning]);
 
   // 2. Pause Timer (Freezes time in place, DOES NOT reset to 00:00:00)
-  const pause = useCallback(() => {
+  // `atTimestamp` lets callers pause retroactively (e.g. Distraction Shield auto-pause)
+  const pauseAt = useCallback((atTimestamp: number) => {
     if (!isRunning || isPaused) return;
 
     if (startTimestampRef.current !== null) {
-      accumulatedMsRef.current += Date.now() - startTimestampRef.current;
+      const endMs = Math.min(Math.max(atTimestamp, startTimestampRef.current), Date.now());
+      accumulatedMsRef.current += endMs - startTimestampRef.current;
       startTimestampRef.current = null;
     }
 
@@ -60,6 +64,8 @@ export function useTimer(options: UseTimerOptions = {}) {
     setIsPaused(true);
     setSecondsElapsed(Math.floor(accumulatedMsRef.current / 1000));
   }, [isRunning, isPaused, clearTimerInterval]);
+
+  const pause = useCallback(() => pauseAt(Date.now()), [pauseAt]);
 
   // 3. Discard / Reset without saving
   const discard = useCallback(() => {
@@ -70,10 +76,11 @@ export function useTimer(options: UseTimerOptions = {}) {
     setIsRunning(false);
     setIsPaused(false);
     setErrorMessage(null);
-  }, [clearTimerInterval]);
+    onReset?.();
+  }, [clearTimerInterval, onReset]);
 
   // 4. Complete & Log Session to database, then reset
-  const completeAndLog = useCallback(async () => {
+  const completeAndLog = useCallback(async (extra?: Record<string, unknown>) => {
     // If running, capture active slice
     let totalMs = accumulatedMsRef.current;
     if (isRunning && startTimestampRef.current !== null) {
@@ -108,6 +115,8 @@ export function useTimer(options: UseTimerOptions = {}) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...extra,
+          day: toDayKey(),
           duration: finalSeconds,
           startedAt,
           endedAt,
@@ -146,6 +155,7 @@ export function useTimer(options: UseTimerOptions = {}) {
     errorMessage,
     start,
     pause,
+    pauseAt,
     discard,
     completeAndLog,
   };

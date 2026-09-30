@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { subDays, startOfDay } from "date-fns";
+import { addDays } from "@/lib/day";
 
 /**
  * Calculates and updates the active streak count for a user for a given day.
@@ -38,7 +38,7 @@ export async function calculateAndUpdateStreak(
   }
 
   // Goal met today! Check yesterday's performance
-  const yesterdayDate = startOfDay(subDays(todayDate, 1));
+  const yesterdayDate = addDays(todayDate, -1);
   const yesterdayStat = await db.dailyStat.findUnique({
     where: {
       userId_date: {

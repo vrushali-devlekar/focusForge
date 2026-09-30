@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   Clock,
   RefreshCw,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { FocusTimer } from "@/components/dashboard/FocusTimer";
@@ -16,6 +18,8 @@ import { ThemeSettingsModal } from "@/components/profile/ThemeSettingsModal";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { DashboardStatsResponse } from "@/types";
 import { formatDurationSummary } from "@/lib/utils";
+import { computePurity } from "@/hooks/useDistractionShield";
+import { toDayKey } from "@/lib/day";
 
 interface DashboardClientProps {
   user: {
@@ -43,7 +47,7 @@ function DashboardContent({ user }: DashboardClientProps) {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch("/api/sessions");
+      const res = await fetch(`/api/sessions?day=${toDayKey()}`);
       if (res.ok) {
         const data: DashboardStatsResponse = await res.json();
         setStatsData(data);
@@ -74,6 +78,20 @@ function DashboardContent({ user }: DashboardClientProps) {
     100
   );
   const isGoalAchieved = cumulativeTodaySeconds >= targetSeconds;
+
+  // Average Distraction Shield purity across recent shielded sessions
+  const shieldedSessions = (statsData?.recentSessions ?? []).filter(
+    (s) => s.distractionCount !== null
+  );
+  const averagePurity =
+    shieldedSessions.length > 0
+      ? Math.round(
+          shieldedSessions.reduce(
+            (sum, s) => sum + computePurity(s.duration, s.awaySeconds ?? 0),
+            0
+          ) / shieldedSessions.length
+        )
+      : null;
 
   const todayMinutes = Math.floor(cumulativeTodaySeconds / 60);
   const targetMinutes = Math.floor(targetSeconds / 60);
@@ -236,16 +254,31 @@ function DashboardContent({ user }: DashboardClientProps) {
                   Recent Forge Sessions
                 </h3>
               </div>
-              <button
-                type="button"
-                onClick={fetchStats}
-                style={{ color: "var(--text-secondary)" }}
-                className="flex items-center gap-1 text-xs hover:text-white transition font-mono"
-                title="Refresh sessions"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Sync</span>
-              </button>
+              <div className="flex items-center gap-3">
+                {averagePurity !== null && (
+                  <span
+                    style={{ color: "var(--text-secondary)" }}
+                    className="hidden sm:flex items-center gap-1 text-xs font-mono"
+                    title="Average Distraction Shield purity of recent sessions"
+                  >
+                    <ShieldCheck
+                      style={{ color: "var(--accent-color, var(--accent-primary))" }}
+                      className="w-3 h-3"
+                    />
+                    <span>Avg purity {averagePurity}%</span>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={fetchStats}
+                  style={{ color: "var(--text-secondary)" }}
+                  className="flex items-center gap-1 text-xs hover:text-white transition font-mono"
+                  title="Refresh sessions"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Sync</span>
+                </button>
+              </div>
             </div>
 
             {statsData?.recentSessions && statsData.recentSessions.length > 0 ? (
@@ -274,16 +307,47 @@ function DashboardContent({ user }: DashboardClientProps) {
                         })}
                       </span>
                     </div>
-                    <span
-                      style={{
-                        color: "var(--accent-color, var(--accent-primary))",
-                        borderColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 30%, transparent)",
-                        backgroundColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 12%, transparent)",
-                      }}
-                      className="font-mono font-semibold text-xs px-2.5 py-0.5 rounded-full border shadow-sm"
-                    >
-                      {formatDurationSummary(Math.floor(session.duration / 60))}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {session.distractionCount !== null && (
+                        <span
+                          style={{
+                            color:
+                              session.distractionCount === 0
+                                ? "var(--accent-color, var(--accent-primary))"
+                                : "#FBBF24",
+                          }}
+                          className="flex items-center gap-1 font-mono text-[10px] font-semibold"
+                          title={
+                            session.distractionCount === 0
+                              ? "Shield intact: zero distractions"
+                              : `${session.distractionCount} ${
+                                  session.distractionCount === 1 ? "break" : "breaks"
+                                } · ${formatDurationSummary(
+                                  Math.floor((session.awaySeconds ?? 0) / 60)
+                                )} away`
+                          }
+                        >
+                          {session.distractionCount === 0 ? (
+                            <ShieldCheck className="w-3 h-3" />
+                          ) : (
+                            <ShieldAlert className="w-3 h-3" />
+                          )}
+                          <span>
+                            {computePurity(session.duration, session.awaySeconds ?? 0)}%
+                          </span>
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          color: "var(--accent-color, var(--accent-primary))",
+                          borderColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 30%, transparent)",
+                          backgroundColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 12%, transparent)",
+                        }}
+                        className="font-mono font-semibold text-xs px-2.5 py-0.5 rounded-full border shadow-sm"
+                      >
+                        {formatDurationSummary(Math.floor(session.duration / 60))}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

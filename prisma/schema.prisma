@@ -73,6 +73,10 @@ model FocusSession {
   endedAt   DateTime
   createdAt DateTime @default(now())
 
+  // Distraction Shield telemetry (null = shield was off / session predates the shield)
+  distractionCount Int?
+  awaySeconds      Int?
+
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, startedAt])

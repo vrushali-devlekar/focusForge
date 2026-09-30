@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { subDays, format, isSameDay, parseISO } from "date-fns";
+import { subDays, format, isSameDay } from "date-fns";
 import { DailyStatItem } from "@/types";
 import { formatDurationSummary } from "@/lib/utils";
+import { toDayKey, dayKeyOfStoredDate } from "@/lib/day";
 import { Flame, Sparkles } from "lucide-react";
 
 interface ConstellationGridProps {
@@ -19,15 +20,10 @@ export const ConstellationGrid: React.FC<ConstellationGridProps> = ({
 }) => {
   const days = Array.from({ length: 30 }).map((_, i) => subDays(new Date(), 29 - i));
 
+  // Stored dates are UTC-midnight calendar days; compare by day key, not local time
   const getDayData = (date: Date) => {
-    return history.find((stat) => {
-      try {
-        const statDate = typeof stat.date === "string" ? parseISO(stat.date) : new Date(stat.date);
-        return isSameDay(statDate, date);
-      } catch {
-        return false;
-      }
-    });
+    const key = toDayKey(date);
+    return history.find((stat) => dayKeyOfStoredDate(stat.date) === key);
   };
 
   return (
