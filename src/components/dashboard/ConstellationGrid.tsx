@@ -4,7 +4,7 @@ import React from "react";
 import { subDays, format, isSameDay, parseISO } from "date-fns";
 import { DailyStatItem } from "@/types";
 import { formatDurationSummary } from "@/lib/utils";
-import { Flame, Sparkles } from "lucide-react";
+import { Sparkles, Flame } from "lucide-react";
 
 interface ConstellationGridProps {
   history: DailyStatItem[];
@@ -31,64 +31,39 @@ export const ConstellationGrid: React.FC<ConstellationGridProps> = ({
   };
 
   return (
-    <div
-      className="theme-card w-full p-5 sm:p-6 transition-all duration-300"
-    >
+    <div className="w-full bg-zinc-900/60 backdrop-blur-md border border-zinc-800/80 rounded-2xl p-5 sm:p-6 shadow-sm">
       {/* Header */}
-      <div
-        style={{ borderColor: "var(--border-subtle)" }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b"
-      >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-zinc-800">
         <div>
           <div className="flex items-center gap-2">
-            <Sparkles
-              style={{ color: "var(--accent-color, var(--accent-primary))" }}
-              className="w-4 h-4"
-            />
-            <h3
-              style={{ color: "var(--text-primary)" }}
-              className="text-sm font-bold tracking-tight font-display"
-            >
-              30-Day Focus Constellation
+            <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+            <h3 className="text-xs font-medium text-zinc-200">
+              30-Day Activity History
             </h3>
           </div>
-          <p
-            style={{ color: "var(--text-secondary)" }}
-            className="text-[11px] font-sans mt-0.5"
-          >
-            Liquid progression toward your daily targets
+          <p className="text-[11px] text-zinc-500 mt-0.5">
+            Focus progression toward daily targets
           </p>
         </div>
 
-        {/* Legend */}
-        <div
-          style={{ color: "var(--text-secondary)" }}
-          className="flex items-center gap-2 text-[10px] font-medium font-mono"
-        >
+        {/* Grayscale Legend */}
+        <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500">
           <span className="flex items-center gap-1">
-            <span
-              className="w-2.5 h-2.5 rounded-sm bg-white/10"
-            />
+            <span className="w-2.5 h-2.5 rounded-sm bg-zinc-800/80 border border-zinc-700/40" />
             0%
           </span>
           <span className="flex items-center gap-1">
-            <span
-              style={{ backgroundColor: "var(--accent-color, var(--accent-primary))", opacity: 0.5 }}
-              className="w-2.5 h-2.5 rounded-sm"
-            />
+            <span className="w-2.5 h-2.5 rounded-sm bg-zinc-600" />
             50%
           </span>
           <span className="flex items-center gap-1">
-            <span
-              style={{ backgroundColor: "var(--accent-color, var(--accent-primary))" }}
-              className="w-2.5 h-2.5 rounded-sm shadow-sm"
-            />
-            100% Met
+            <span className="w-2.5 h-2.5 rounded-sm bg-zinc-100" />
+            100%
           </span>
         </div>
       </div>
 
-      {/* 30-Day Compact Grid */}
+      {/* 30-Day Grid */}
       <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 sm:gap-2.5">
         {days.map((date, idx) => {
           const isToday = isSameDay(date, new Date());
@@ -104,82 +79,49 @@ export const ConstellationGrid: React.FC<ConstellationGridProps> = ({
           const isGoalMet = fillPercentage >= 100;
           const minutes = Math.floor(totalSeconds / 60);
 
+          // Monochrome Fill Color Calculation
+          let cellBgClass = "bg-zinc-800/40 text-zinc-500";
+          if (fillPercentage >= 100) {
+            cellBgClass = "bg-zinc-100 text-zinc-950 font-bold";
+          } else if (fillPercentage >= 70) {
+            cellBgClass = "bg-zinc-400 text-zinc-950 font-semibold";
+          } else if (fillPercentage >= 35) {
+            cellBgClass = "bg-zinc-600 text-zinc-200";
+          } else if (fillPercentage > 0) {
+            cellBgClass = "bg-zinc-800 text-zinc-300";
+          }
+
           return (
             <div
               key={idx}
               className="flex flex-col items-center group relative cursor-pointer"
             >
               {/* Tooltip */}
-              <div className="absolute -top-10 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none">
-                <div className="bg-black/95 text-white text-[10px] py-1 px-2 rounded-md shadow-xl whitespace-nowrap font-sans font-medium">
+              <div className="absolute -top-9 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none">
+                <div className="bg-zinc-900 border border-zinc-700 text-zinc-200 text-[10px] py-1 px-2 rounded-md shadow-xl whitespace-nowrap font-mono">
                   {format(date, "MMM d")}: {formatDurationSummary(minutes)} ({fillPercentage}%)
                 </div>
-                <div className="w-1.5 h-1.5 bg-black/95 rotate-45 -mt-0.5" />
+                <div className="w-1.5 h-1.5 bg-zinc-900 border-r border-b border-zinc-700 rotate-45 -mt-0.5" />
               </div>
 
-              {/* Compact Liquid Day Cube (Borderless) */}
+              {/* Minimal Day Cube */}
               <div
-                style={
+                className={`w-full aspect-square max-w-[52px] rounded-xl relative flex flex-col items-center justify-center transition border ${
                   isToday
-                    ? {
-                        outline: "2px solid var(--accent-color, var(--accent-primary))",
-                        outlineOffset: "2px",
-                      }
-                    : undefined
-                }
-                className={`w-full aspect-square max-w-[56px] rounded-xl relative overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:shadow-md ${
-                  isGoalMet ? "flame-glow-effect" : "bg-white/[0.04]"
-                }`}
+                    ? "border-zinc-300 ring-1 ring-zinc-400"
+                    : "border-zinc-800/80"
+                } ${cellBgClass}`}
               >
-                <div className="absolute inset-0 bg-white/[0.02]" />
-
-                {/* Liquid Water Fill */}
-                {fillPercentage > 0 && (
-                  <div
-                    className="absolute bottom-0 left-0 right-0 transition-all duration-500 overflow-hidden"
-                    style={{
-                      height: `${fillPercentage}%`,
-                      backgroundColor: "var(--accent-color, var(--accent-primary))",
-                    }}
-                  >
-                    {fillPercentage < 100 && (
-                      <div className="absolute -top-2 left-0 w-[200%] h-3 pointer-events-none water-wave opacity-75">
-                        <svg
-                          viewBox="0 0 500 150"
-                          preserveAspectRatio="none"
-                          className="w-full h-full"
-                        >
-                          <path
-                            d="M0.00,49.98 C150.00,150.00 349.81,-49.98 500.00,49.98 L500.00,150.00 L0.00,150.00 Z"
-                            style={{ stroke: "none", fill: "var(--accent-color, var(--accent-primary))" }}
-                          />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
+                <span className="text-xs font-mono">
+                  {format(date, "d")}
+                </span>
+                {isGoalMet && (
+                  <Flame className="w-2.5 h-2.5 mt-0.5" />
                 )}
-
-                {/* Day Number */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-                  <span
-                    className={`text-[11px] font-bold font-mono transition-colors duration-200 ${
-                      fillPercentage > 50 ? "text-black drop-shadow-sm font-extrabold" : "opacity-90"
-                    }`}
-                  >
-                    {format(date, "d")}
-                  </span>
-
-                  {isGoalMet && (
-                    <Flame className="w-2.5 h-2.5 text-black fill-black drop-shadow-sm -mt-0.5 animate-bounce" />
-                  )}
-                </div>
               </div>
 
               {/* Day of Week Label */}
-              <span
-                style={{ color: "var(--text-secondary)" }}
-                className="text-[9px] font-medium mt-1 uppercase tracking-wider font-sans opacity-70"
-              >
+              <span className="text-[9px] font-mono text-zinc-500 mt-1 uppercase">
                 {format(date, "EEEEE")}
               </span>
             </div>

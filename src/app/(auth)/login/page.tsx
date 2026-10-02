@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { signIn } from "next-auth/react";
+import { FlameIcon } from "@/components/FlameIcon";
 import { Flame, Clock, Shield } from "lucide-react";
 import { ThemeProvider } from "@/context/ThemeContext";
 
@@ -19,79 +20,56 @@ function LoginContent() {
   };
 
   return (
-    <main
-      style={{
-        backgroundColor: "var(--bg-page)",
-        color: "var(--text-primary)",
-      }}
-      className="min-h-screen flex flex-col justify-between px-4 py-8 selection:bg-red-500/20 selection:text-white"
-    >
-      {/* Header */}
-      <header className="max-w-5xl w-full mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div
-            style={{
-              backgroundColor: "rgba(248, 113, 113, 0.12)",
-              borderColor: "var(--border-color)",
-            }}
-            className="p-2 rounded-2xl border shadow-sm"
-          >
-            <Flame
-              style={{ color: "var(--accent-primary)" }}
-              className="w-4 h-4"
-            />
-          </div>
-          <span className="font-bold text-lg tracking-tight font-sans">
+    <main className="min-h-screen bg-[#090a0d] text-white flex flex-col justify-between px-4 py-8 sm:py-10 relative overflow-hidden select-none">
+      {/* Background Subtle Radial Spotlight Gradient & Light Dot Grid */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 50% 15%, rgba(66, 228, 37, 0.07), transparent 60%),
+            radial-gradient(circle at 50% 70%, rgba(255, 255, 255, 0.02), transparent 70%),
+            radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)
+          `,
+          backgroundSize: "100% 100%, 100% 100%, 24px 24px",
+        }}
+      />
+
+      {/* Top Header Logo */}
+      <header className="relative z-10 max-w-5xl w-full mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-2.5 group">
+          <FlameIcon size="sm" containerVariant="navbar" />
+          <span className="font-bold text-base sm:text-lg tracking-tight text-white">
             FocusForge
           </span>
         </div>
       </header>
 
-      {/* Login Card */}
-      <div className="max-w-md w-full mx-auto my-12">
-        <div
-          style={{
-            backgroundColor: "var(--bg-card)",
-            borderColor: "var(--border-color)",
-            boxShadow: "var(--card-shadow)",
-          }}
-          className="border rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden"
-        >
-          <div
-            style={{
-              backgroundColor: "rgba(248, 113, 113, 0.12)",
-              borderColor: "rgba(248, 113, 113, 0.25)",
-              color: "var(--accent-primary)",
-            }}
-            className="inline-flex p-3.5 rounded-2xl border mb-5"
-          >
-            <Flame className="w-7 h-7" />
-          </div>
+      {/* Main Login Card */}
+      <div className="relative z-10 max-w-md w-full mx-auto my-auto py-8">
+        <div className="rounded-[28px] bg-[#111317]/90 border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-xl p-7 sm:p-10 text-center relative overflow-hidden">
+          {/* Top Icon Emblem with Radial Heat Glow */}
+          <FlameIcon size="lg" containerVariant="card" />
 
-          <h1 className="text-2xl font-bold mb-2">
+          {/* Heading & Subtitle */}
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2.5">
             Enter FocusForge
           </h1>
-          <p
-            style={{ color: "var(--text-secondary)" }}
-            className="text-xs sm:text-sm font-sans mb-8 leading-relaxed"
-          >
+          <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed mb-8 max-w-sm mx-auto font-sans">
             A high-focus deep work workspace, streak engine, and ambient soundscapes companion.
           </p>
 
+          {/* "Continue with Google" Button */}
           <button
+            type="button"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            style={{
-              backgroundColor: "#FFFFFF",
-              color: "#0F1015",
-            }}
-            className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl font-bold text-sm transition-all duration-200 shadow-md hover:brightness-95 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 py-3.5 px-6 rounded-full bg-white text-zinc-950 font-semibold text-sm transition-all duration-200 shadow-lg hover:scale-[1.01] active:scale-[0.99] hover:bg-zinc-100 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
-              <span className="text-xs">Connecting...</span>
+              <span className="text-xs font-mono">Connecting...</span>
             ) : (
               <>
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -114,32 +92,40 @@ function LoginContent() {
             )}
           </button>
 
-          {/* Feature Highlights */}
-          <div
-            style={{ borderColor: "var(--border-color)" }}
-            className="mt-8 pt-6 border-t grid grid-cols-3 gap-2 text-center text-[11px]"
-          >
-            <div className="flex flex-col items-center gap-1 opacity-80">
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
-              <span>Zero-Drift Timer</span>
+          {/* 3 Bottom Feature Micro-Cards */}
+          <div className="mt-8 pt-6 border-t border-white/[0.08] grid grid-cols-3 gap-2.5 text-center">
+            {/* Micro Card 1: Zero-Drift */}
+            <div className="rounded-xl bg-zinc-900/60 border border-white/[0.06] p-2.5 flex flex-col items-center gap-1 transition-colors hover:border-white/10">
+              <div className="w-6 h-6 rounded-lg bg-zinc-800/80 flex items-center justify-center text-zinc-300">
+                <Clock className="w-3.5 h-3.5 text-[#42e425]" />
+              </div>
+              <span className="text-xs font-medium text-zinc-200 leading-tight">Zero-Drift</span>
+              <span className="text-[10px] text-zinc-500 font-mono">Stopwatch</span>
             </div>
-            <div className="flex flex-col items-center gap-1 opacity-80">
-              <Flame className="w-3.5 h-3.5 text-rose-400" />
-              <span>Active Streaks</span>
+
+            {/* Micro Card 2: Daily Streaks */}
+            <div className="rounded-xl bg-zinc-900/60 border border-white/[0.06] p-2.5 flex flex-col items-center gap-1 transition-colors hover:border-white/10">
+              <div className="w-6 h-6 rounded-lg bg-zinc-800/80 flex items-center justify-center text-zinc-300">
+                <Flame className="w-3.5 h-3.5 text-[#42e425]" />
+              </div>
+              <span className="text-xs font-medium text-zinc-200 leading-tight">Streaks</span>
+              <span className="text-[10px] text-zinc-500 font-mono">30d Grid</span>
             </div>
-            <div className="flex flex-col items-center gap-1 opacity-80">
-              <Shield className="w-3.5 h-3.5 text-sky-400" />
-              <span>Deep Flow</span>
+
+            {/* Micro Card 3: Deep Flow */}
+            <div className="rounded-xl bg-zinc-900/60 border border-white/[0.06] p-2.5 flex flex-col items-center gap-1 transition-colors hover:border-white/10">
+              <div className="w-6 h-6 rounded-lg bg-zinc-800/80 flex items-center justify-center text-zinc-300">
+                <Shield className="w-3.5 h-3.5 text-[#42e425]" />
+              </div>
+              <span className="text-xs font-medium text-zinc-200 leading-tight">Shield</span>
+              <span className="text-[10px] text-zinc-500 font-mono">Zen Mode</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <footer
-        style={{ color: "var(--text-secondary)" }}
-        className="max-w-5xl w-full mx-auto text-center text-xs font-mono opacity-60"
-      >
+      <footer className="relative z-10 max-w-md w-full mx-auto text-center text-xs font-mono text-zinc-500">
         <p>FocusForge &bull; Dedicated to the craft of uninterrupted flow</p>
       </footer>
     </main>

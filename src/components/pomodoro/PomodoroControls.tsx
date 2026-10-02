@@ -13,25 +13,20 @@ import {
   EyeOff,
 } from "lucide-react";
 import soundSynthesizer from "@/lib/soundSynthesizer";
+import { AudioDock } from "@/components/dashboard/AudioDock";
 import { MilestoneBanner } from "@/components/pomodoro/MilestoneBanner";
-import { FocusModeOverlay } from "@/components/student/FocusModeOverlay";
 
 const THREE_HOURS_SECONDS = 3 * 3600; // 10,800s
 
-export function getLocalDateString(date: Date = new Date()): string {
+function getLocalDateString(date: Date = new Date()): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
-export function getDailyStorageKey(date: Date = new Date()): string {
+function getDailyStorageKey(date: Date = new Date()): string {
   return `focus_total_${getLocalDateString(date)}`;
-}
-
-interface FocusTimerProps {
-  onSessionLogged?: () => void;
-  onActiveSecondsChange?: (seconds: number, isRunning: boolean, todayTotal: number) => void;
 }
 
 function formatThreeColumns(totalSeconds: number): { hours: string; minutes: string; seconds: string } {
@@ -46,10 +41,7 @@ function formatThreeColumns(totalSeconds: number): { hours: string; minutes: str
   };
 }
 
-export const FocusTimer: React.FC<FocusTimerProps> = ({
-  onSessionLogged,
-  onActiveSecondsChange,
-}) => {
+export const PomodoroControls: React.FC = () => {
   // 1. Open-ended Free Flow Stopwatch state (Wall-Clock Based)
   const [secondsElapsed, setSecondsElapsed] = useState<number>(0);
   const [accumulatedSeconds, setAccumulatedSeconds] = useState<number>(0);
@@ -60,15 +52,14 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   const [lockedTask, setLockedTask] = useState<string>("");
   const [isEditingTask, setIsEditingTask] = useState<boolean>(false);
 
-  // 3. Daily Metrics & Milestone state
+  // 3. Metrics & Milestone state
   const [todayFocusSeconds, setTodayFocusSeconds] = useState<number>(0);
   const [streakDays, setStreakDays] = useState<number>(1);
-  const [milestoneFired, setMilestoneFired] = useState<boolean>(false);
   const [showMilestoneBanner, setShowMilestoneBanner] = useState<boolean>(false);
+  const [milestoneFired, setMilestoneFired] = useState<boolean>(false);
 
-  // 4. Distraction Shield & Zen Focus state
+  // 4. Distraction Shield state
   const [isShieldActive, setIsShieldActive] = useState<boolean>(true);
-  const [isZenOpen, setIsZenOpen] = useState<boolean>(false);
 
   const startTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -83,7 +74,6 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       if (rawDaily !== null) {
         total = Number(rawDaily) || 0;
       } else {
-        // Fallback: check legacy storage keys to seed today's total
         const legacy = localStorage.getItem("focusforge_stopwatch_v1");
         if (legacy) {
           const parsed = JSON.parse(legacy);
@@ -102,12 +92,11 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     }
   }, []);
 
-  // Restore and sync persisted state from localStorage on mount
+  // Restore persisted state from localStorage
   useEffect(() => {
     try {
       const dailyTotal = loadDailyTotal();
 
-      // Restore active task & preferences
       const savedTask = localStorage.getItem("focus_active_task");
       if (savedTask) setLockedTask(savedTask);
 
@@ -124,7 +113,6 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         setShowMilestoneBanner(true);
       }
 
-      // Check for active wall-clock session (persisting across page reloads / tabs)
       const savedStart = localStorage.getItem("focus_active_start");
       const savedAccumulated = Number(localStorage.getItem("focus_active_accumulated") || 0);
       setAccumulatedSeconds(savedAccumulated);
@@ -147,15 +135,6 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     }
   }, [loadDailyTotal]);
 
-  // Request browser desktop notification permission
-  const requestNotificationPermission = useCallback(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      if (Notification.permission === "default") {
-        Notification.requestPermission();
-      }
-    }
-  }, []);
-
   // Trigger 3-Hour Milestone notification & chime without stopping the timer
   const triggerMilestoneAlert = useCallback(() => {
     setMilestoneFired(true);
@@ -173,7 +152,16 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     }
   }, []);
 
-  // Wall-Clock Accurate Timer Tick (Prevents Background Tab Throttling & Freezing)
+  // Request browser desktop notification permission
+  const requestNotificationPermission = useCallback(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // Wall-Clock Accurate Timer Tick
   useEffect(() => {
     const updateElapsed = () => {
       if (startTimeRef.current) {
@@ -204,7 +192,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     };
   }, [isRunning, accumulatedSeconds, todayFocusSeconds, milestoneFired, triggerMilestoneAlert]);
 
-  // Handle Tab Visibility & Focus changes (instantly catch up with wall-clock time)
+  // Handle Tab Visibility & Focus changes
   useEffect(() => {
     const handleVisibilityOrFocus = () => {
       if (document.visibilityState === "visible" || document.hasFocus()) {
@@ -249,24 +237,17 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     };
   }, [loadDailyTotal]);
 
-  // Notify parent of active tick
-  useEffect(() => {
-    onActiveSecondsChange?.(secondsElapsed, isRunning, todayFocusSeconds);
-  }, [secondsElapsed, isRunning, todayFocusSeconds, onActiveSecondsChange]);
-
-  // Start / Pause Session
+  // Controls
   const toggleStartPause = useCallback(() => {
     const now = Date.now();
 
     if (!isRunning) {
-      // STARTING
       requestNotificationPermission();
       startTimeRef.current = now;
       localStorage.setItem("focus_active_start", String(now));
       localStorage.setItem("focus_active_accumulated", String(accumulatedSeconds));
       setIsRunning(true);
     } else {
-      // PAUSING
       const segment = startTimeRef.current ? Math.max(0, Math.floor((now - startTimeRef.current) / 1000)) : 0;
       const totalSession = accumulatedSeconds + segment;
 
@@ -278,7 +259,6 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       localStorage.removeItem("focus_active_start");
       localStorage.setItem("focus_active_accumulated", String(totalSession));
 
-      // Sync legacy key
       try {
         const payload = {
           lastSavedDate: getLocalDateString(),
@@ -296,7 +276,6 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     }
   }, [isRunning, accumulatedSeconds, todayFocusSeconds, streakDays, lockedTask, milestoneFired, isShieldActive, requestNotificationPermission]);
 
-  // Reset Session
   const handleReset = useCallback(() => {
     startTimeRef.current = null;
     setIsRunning(false);
@@ -322,7 +301,6 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     }
   }, [todayFocusSeconds, streakDays, lockedTask, milestoneFired, isShieldActive]);
 
-  // Complete & Log Session into Daily Aggregation (focus_total_YYYY-MM-DD)
   const handleCompleteAndLog = useCallback(() => {
     const now = Date.now();
     const segment = isRunning && startTimeRef.current ? Math.max(0, Math.floor((now - startTimeRef.current) / 1000)) : 0;
@@ -330,7 +308,6 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
 
     if (finalSessionDuration <= 0) return;
 
-    // 1. Update Daily Total
     const todayKey = getDailyStorageKey();
     const currentToday = Number(localStorage.getItem(todayKey) || todayFocusSeconds || 0);
     const updatedToday = currentToday + finalSessionDuration;
@@ -339,13 +316,11 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     setTodayFocusSeconds(updatedToday);
     soundSynthesizer.playChime("complete");
 
-    // 2. Check 3-hour milestone
     const isNowMilestone = updatedToday >= THREE_HOURS_SECONDS;
     if (isNowMilestone && !milestoneFired) {
       triggerMilestoneAlert();
     }
 
-    // 3. Clear active session state
     startTimeRef.current = null;
     setAccumulatedSeconds(0);
     setSecondsElapsed(0);
@@ -353,7 +328,6 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     localStorage.removeItem("focus_active_start");
     localStorage.removeItem("focus_active_accumulated");
 
-    // 4. Update streak and legacy storage
     const newStreak = Math.max(streakDays, 1);
     setStreakDays(newStreak);
     localStorage.setItem("focus_streak_days", String(newStreak));
@@ -372,9 +346,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     } catch (e) {
       console.error(e);
     }
-
-    onSessionLogged?.();
-  }, [isRunning, accumulatedSeconds, todayFocusSeconds, streakDays, lockedTask, milestoneFired, isShieldActive, onSessionLogged, triggerMilestoneAlert]);
+  }, [isRunning, accumulatedSeconds, todayFocusSeconds, streakDays, lockedTask, milestoneFired, isShieldActive, triggerMilestoneAlert]);
 
   const handleToggleShield = () => {
     const nextVal = !isShieldActive;
@@ -383,28 +355,16 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   };
 
   const handleToggleZen = () => {
-    setIsZenOpen((prev) => {
-      const next = !prev;
-      if (next) {
-        if (typeof document !== "undefined" && !document.fullscreenElement) {
-          document.documentElement.requestFullscreen?.().catch(() => {});
-        }
-      } else {
-        if (typeof document !== "undefined" && document.fullscreenElement) {
-          document.exitFullscreen?.().catch(() => {});
-        }
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
       }
-      return next;
-    });
-  };
-
-  const handleExitZen = () => {
-    setIsZenOpen(false);
-    if (typeof document !== "undefined" && document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
     }
   };
 
+  // Lock-in Task handler
   const handleLockTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskInput.trim()) return;
@@ -452,7 +412,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
 
   return (
     <div className="w-full max-w-lg mx-auto space-y-5">
-      {/* 1. Streamlined Task Input */}
+      {/* 1. Streamlined Single Task Input */}
       <div className="w-full">
         {!lockedTask || isEditingTask ? (
           <form onSubmit={handleLockTask} className="w-full">
@@ -504,19 +464,8 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-[11px] font-mono">
             {isRunning ? (
               <>
-                <span
-                  className="w-2 h-2 rounded-full animate-pulse shadow-sm"
-                  style={{
-                    backgroundColor: "var(--accent-primary, #42e425)",
-                    boxShadow: "0 0 8px var(--accent-primary, #42e425)",
-                  }}
-                />
-                <span
-                  className="font-semibold tracking-wider"
-                  style={{ color: "var(--accent-primary, #42e425)" }}
-                >
-                  DEEP FOCUS ACTIVE
-                </span>
+                <span className="w-2 h-2 rounded-full bg-[#42e425] animate-pulse shadow-[0_0_8px_#42e425]" />
+                <span className="font-semibold text-[#42e425] tracking-wider">DEEP FOCUS ACTIVE</span>
               </>
             ) : (
               <>
@@ -528,7 +477,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
             )}
           </div>
 
-          {/* Zen Button (Matching user screenshot) */}
+          {/* Zen Button */}
           <button
             type="button"
             onClick={handleToggleZen}
@@ -544,7 +493,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         <div className="w-full flex items-center justify-center gap-3 sm:gap-5 my-2 select-none">
           {/* HOURS Column */}
           <div className="flex flex-col items-center">
-            <div className="font-righteous text-6xl sm:text-7xl md:text-8xl text-white tracking-tight tabular-nums">
+            <div className="font-righteous text-6xl sm:text-7xl md:text-8xl text-white tracking-tight tabular-nums drop-shadow-sm">
               {hours}
             </div>
             <span className="text-[10px] sm:text-xs font-mono tracking-widest text-zinc-500 uppercase mt-2 font-medium">
@@ -560,7 +509,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
 
           {/* MINUTES Column */}
           <div className="flex flex-col items-center">
-            <div className="font-righteous text-6xl sm:text-7xl md:text-8xl text-white tracking-tight tabular-nums">
+            <div className="font-righteous text-6xl sm:text-7xl md:text-8xl text-white tracking-tight tabular-nums drop-shadow-sm">
               {minutes}
             </div>
             <span className="text-[10px] sm:text-xs font-mono tracking-widest text-zinc-500 uppercase mt-2 font-medium">
@@ -574,13 +523,14 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
             <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-zinc-700/80" />
           </div>
 
-          {/* SECONDS Column (Dynamic Accent on running) */}
+          {/* SECONDS Column (Dynamic Neon Green on running) */}
           <div className="flex flex-col items-center">
             <div
-              className="font-righteous text-6xl sm:text-7xl md:text-8xl tracking-tight tabular-nums transition-colors duration-200"
-              style={{
-                color: isRunning ? "var(--accent-primary, #42e425)" : "#ffffff",
-              }}
+              className={`font-righteous text-6xl sm:text-7xl md:text-8xl tracking-tight tabular-nums transition-colors duration-200 ${
+                isRunning
+                  ? "text-[#42e425] drop-shadow-[0_0_20px_rgba(66,228,37,0.35)]"
+                  : "text-white"
+              }`}
             >
               {seconds}
             </div>
@@ -590,17 +540,13 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           </div>
         </div>
 
-        {/* 4. Action Bar (Pill Container with Accent Primary Button & Text Link) */}
+        {/* 4. Action Bar (Pill Container with Neon Green Button & Text Link) */}
         <div className="w-full rounded-full bg-zinc-950 border border-zinc-800/90 p-1.5 flex items-center justify-between gap-3 shadow-inner">
           {/* Primary Action Button */}
           <button
             type="button"
             onClick={toggleStartPause}
-            style={{
-              backgroundColor: "var(--accent-primary, #42e425)",
-              color: "var(--accent-btn-text, #050805)",
-            }}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-7 py-2.5 rounded-full hover:brightness-110 active:scale-[0.98] font-bold text-xs sm:text-sm transition-all shadow-md"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-7 py-2.5 rounded-full bg-[#42e425] hover:bg-[#38cb1e] active:scale-[0.98] text-zinc-950 font-bold text-xs sm:text-sm transition-all shadow-[0_0_20px_rgba(66,228,37,0.25)]"
             title="Start / Pause (Spacebar)"
           >
             {isRunning ? (
@@ -630,14 +576,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
               title="Complete and log session"
             >
               <span>Complete &amp; Log</span>
-              <span
-                style={{
-                  color: secondsElapsed > 0 ? "var(--accent-primary, #42e425)" : undefined,
-                }}
-                className={secondsElapsed > 0 ? "" : "text-zinc-600"}
-              >
-                &rarr;
-              </span>
+              <span className={secondsElapsed > 0 ? "text-[#42e425]" : "text-zinc-600"}>&rarr;</span>
             </button>
             <button
               type="button"
@@ -668,13 +607,9 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                 Distraction Shield
               </span>
               <span
-                style={{
-                  color: isShieldActive ? "var(--accent-primary, #42e425)" : undefined,
-                  borderColor: isShieldActive ? "var(--accent-primary, #42e425)" : undefined,
-                }}
                 className={`text-[9px] font-mono uppercase px-2 py-0.5 rounded-full font-semibold border ${
                   isShieldActive
-                    ? "bg-white/5"
+                    ? "bg-[#42e425]/10 text-[#42e425] border-[#42e425]/30"
                     : "bg-zinc-800 text-zinc-400 border-zinc-700"
                 }`}
               >
@@ -693,11 +628,8 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           role="switch"
           aria-checked={isShieldActive}
           onClick={handleToggleShield}
-          style={{
-            backgroundColor: isShieldActive ? "var(--accent-primary, #42e425)" : undefined,
-          }}
           className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-            isShieldActive ? "" : "bg-zinc-800"
+            isShieldActive ? "bg-[#42e425]" : "bg-zinc-800"
           }`}
           title="Toggle Distraction Shield"
         >
@@ -727,23 +659,16 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         </div>
       </div>
 
+      {/* Focus Soundscapes Dock */}
+      <AudioDock isTimerRunning={isRunning} />
+
       {/* 3-Hour Milestone Celebration Alert */}
       <MilestoneBanner
         isOpen={showMilestoneBanner}
         onDismiss={() => setShowMilestoneBanner(false)}
       />
-
-      {/* Zen Focus Mode Overlay */}
-      <FocusModeOverlay
-        isOpen={isZenOpen}
-        onExit={handleExitZen}
-        taskObjective={lockedTask || "Deep Focus Session"}
-        secondsElapsed={secondsElapsed}
-        isRunning={isRunning}
-        onToggleTimer={toggleStartPause}
-      />
     </div>
   );
 };
 
-export default FocusTimer;
+export default PomodoroControls;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 export type ThemeId = "theme-1" | "theme-2" | "theme-3" | "theme-4" | "theme-5";
 
@@ -26,12 +26,12 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
     name: "SecuNet Cyber Grid",
     subtitle: "Dark Grid Canvas & Cyber Lime",
     bgPage: "#070809",
-    bgCard: "rgba(14, 16, 20, 0.70)",
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    bgCard: "rgba(18, 20, 26, 0.75)",
+    borderColor: "rgba(255, 255, 255, 0.08)",
     textPrimary: "#FFFFFF",
     textSecondary: "#94A3B8",
-    accentPrimary: "#72E929", // Cyber Lime
-    accentSecondary: "#4FC513",
+    accentPrimary: "#42e425", // Cyber Lime
+    accentSecondary: "#38cb1e",
     accentBtnText: "#050805",
     fontDisplay: "Plus Jakarta Sans",
     fontBody: "Plus Jakarta Sans",
@@ -40,9 +40,9 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
     id: "theme-2",
     name: "Cyber Lime Glassmorphism",
     subtitle: "Deep Emerald Canvas & Volt Lime",
-    bgPage: "#050706",
-    bgCard: "rgba(14, 16, 20, 0.70)",
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    bgPage: "#050806",
+    bgCard: "rgba(10, 22, 16, 0.75)",
+    borderColor: "rgba(212, 255, 50, 0.15)",
     textPrimary: "#FFFFFF",
     textSecondary: "#8E968F",
     accentPrimary: "#D4FF32", // Volt Lime
@@ -55,13 +55,13 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
     id: "theme-3",
     name: "Retro Monochrome Matrix",
     subtitle: "Pitch Obsidian & Terminal Green",
-    bgPage: "#050505",
-    bgCard: "rgba(14, 16, 20, 0.70)",
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    bgPage: "#040504",
+    bgCard: "rgba(5, 15, 8, 0.85)",
+    borderColor: "rgba(0, 255, 102, 0.2)",
     textPrimary: "#FFFFFF",
     textSecondary: "#00FF66",
     accentPrimary: "#00FF66", // Terminal Green
-    accentSecondary: "#00FF66",
+    accentSecondary: "#00CC52",
     accentBtnText: "#050505",
     fontDisplay: "Silkscreen",
     fontBody: "JetBrains Mono",
@@ -71,8 +71,8 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
     name: "Pop Neo-Brutalism",
     subtitle: "High Contrast & Canary Yellow",
     bgPage: "#0A0A0B",
-    bgCard: "rgba(14, 16, 20, 0.70)",
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    bgCard: "rgba(22, 22, 26, 0.80)",
+    borderColor: "rgba(255, 209, 71, 0.2)",
     textPrimary: "#FFFFFF",
     textSecondary: "#FFD147",
     accentPrimary: "#FFD147", // Canary Yellow
@@ -85,11 +85,11 @@ export const THEMES: Record<ThemeId, ThemeDefinition> = {
     id: "theme-5",
     name: "Gen-Z Sunset Neo-Grotesk",
     subtitle: "Deep Charcoal & Peach Coral",
-    bgPage: "#121316",
-    bgCard: "rgba(14, 16, 20, 0.70)",
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    bgPage: "#0f0e13",
+    bgCard: "rgba(26, 20, 28, 0.80)",
+    borderColor: "rgba(248, 113, 113, 0.2)",
     textPrimary: "#FFFFFF",
-    textSecondary: "#9CA3AF",
+    textSecondary: "#FCA5A5",
     accentPrimary: "#F87171", // Peach Coral
     accentSecondary: "#FB923C",
     accentBtnText: "#FFFFFF",
@@ -109,38 +109,48 @@ const THEME_STORAGE_KEY = "focusforge-theme";
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function applyThemeVariables(theme: ThemeDefinition) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  root.setAttribute("data-theme", theme.id);
+  document.body.setAttribute("data-theme", theme.id);
+
+  root.style.setProperty("--bg-page", theme.bgPage);
+  root.style.setProperty("--bg-card", theme.bgCard);
+  root.style.setProperty("--border-card-color", theme.borderColor);
+  root.style.setProperty("--text-primary", theme.textPrimary);
+  root.style.setProperty("--text-secondary", theme.textSecondary);
+  root.style.setProperty("--accent-primary", theme.accentPrimary);
+  root.style.setProperty("--accent-color", theme.accentPrimary);
+  root.style.setProperty("--accent-secondary", theme.accentSecondary);
+  root.style.setProperty("--accent-btn-text", theme.accentBtnText);
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [currentThemeId, setCurrentThemeId] = useState<ThemeId>("theme-1");
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
     try {
       const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as ThemeId | null;
-      if (savedTheme && THEMES[savedTheme]) {
-        setCurrentThemeId(savedTheme);
-        document.documentElement.setAttribute("data-theme", savedTheme);
-        document.body.setAttribute("data-theme", savedTheme);
-      } else {
-        document.documentElement.setAttribute("data-theme", "theme-1");
-        document.body.setAttribute("data-theme", "theme-1");
-      }
+      const initialId = savedTheme && THEMES[savedTheme] ? savedTheme : "theme-1";
+      setCurrentThemeId(initialId);
+      applyThemeVariables(THEMES[initialId]);
     } catch (e) {
       console.error("Failed to read theme from localStorage", e);
+      applyThemeVariables(THEMES["theme-1"]);
     }
   }, []);
 
-  const setTheme = (id: ThemeId) => {
+  const setTheme = useCallback((id: ThemeId) => {
     if (!THEMES[id]) return;
     setCurrentThemeId(id);
-    document.documentElement.setAttribute("data-theme", id);
-    document.body.setAttribute("data-theme", id);
+    applyThemeVariables(THEMES[id]);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, id);
     } catch (e) {
       console.error("Failed to save theme to localStorage", e);
     }
-  };
+  }, []);
 
   const currentTheme = THEMES[currentThemeId] || THEMES["theme-1"];
   const themes = Object.values(THEMES);
@@ -166,3 +176,4 @@ export function useTheme() {
   }
   return context;
 }
+

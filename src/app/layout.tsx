@@ -7,9 +7,17 @@ import {
   Bebas_Neue,
   Poppins,
   Inter,
+  Righteous,
 } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
+
+const righteous = Righteous({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-righteous",
+  display: "swap",
+});
 
 const syne = Syne({
   subsets: ["latin"],
@@ -80,7 +88,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="theme-1"
-      className={`${syne.variable} ${plusJakartaSans.variable} ${silkscreen.variable} ${jetbrainsMono.variable} ${bebasNeue.variable} ${poppins.variable} ${inter.variable}`}
+      className={`${righteous.variable} ${syne.variable} ${plusJakartaSans.variable} ${silkscreen.variable} ${jetbrainsMono.variable} ${bebasNeue.variable} ${poppins.variable} ${inter.variable}`}
       suppressHydrationWarning
     >
       <body

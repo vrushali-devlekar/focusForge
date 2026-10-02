@@ -2,45 +2,39 @@
 
 import React from "react";
 import { Flame } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/Card";
 
 interface StreakBadgeProps {
-  currentStreak: number;
-  longestStreak?: number;
-  className?: string;
+  streakCount: number;
 }
 
-export const StreakBadge: React.FC<StreakBadgeProps> = ({
-  currentStreak,
-  longestStreak,
-  className,
-}) => {
-  const hasStreak = currentStreak > 0;
-
+export const StreakBadge: React.FC<StreakBadgeProps> = ({ streakCount }) => {
   return (
-    <div
-      className={cn(
-        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300",
-        hasStreak
-          ? "bg-amber-500/10 border-amber-500/30 text-amber-300 shadow-flame-glow"
-          : "bg-slate-800/40 border-slate-700/60 text-slate-400",
-        className
-      )}
-    >
-      <Flame
-        className={cn(
-          "w-4 h-4 transition-transform duration-300",
-          hasStreak ? "text-amber-400 animate-bounce" : "text-slate-500"
-        )}
-      />
-      <span className="text-xs font-bold tracking-wide">
-        {currentStreak} {currentStreak === 1 ? "Day Streak" : "Days Streak"}
-      </span>
-      {longestStreak !== undefined && longestStreak > 0 && (
-        <span className="text-[10px] text-slate-500 border-l border-slate-700 pl-2">
-          Best: {longestStreak}d
+    <Card className="flex flex-col justify-between bg-zinc-900/60 border-zinc-800/80">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-zinc-800 text-zinc-300">
+            <Flame className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-xs font-medium text-zinc-200">Daily Streak</h3>
+            <p className="text-xs text-zinc-500">Unbroken momentum</p>
+          </div>
+        </div>
+
+        <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700">
+          {streakCount > 0 ? "Active" : "Idle"}
         </span>
-      )}
-    </div>
+      </div>
+
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-semibold font-mono text-zinc-100 tabular-nums">
+          {streakCount}
+        </span>
+        <span className="text-xs text-zinc-500 font-mono">
+          {streakCount === 1 ? "day active" : "days active"}
+        </span>
+      </div>
+    </Card>
   );
 };

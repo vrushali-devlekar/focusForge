@@ -11,7 +11,6 @@ interface WeeklyHeatmapProps {
 }
 
 export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ history }) => {
-  // Generate last 7 days
   const last7Days = Array.from({ length: 7 })
     .map((_, i) => subDays(new Date(), 6 - i));
 
@@ -28,19 +27,19 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ history }) => {
 
   const getIntensityClass = (durationSeconds: number) => {
     const mins = Math.floor(durationSeconds / 60);
-    if (mins === 0) return "bg-white/[0.03] border-white/[0.05] text-white/40";
-    if (mins < 30) return "bg-lime-500/15 border-lime-400/25 text-lime-300";
-    if (mins < 60) return "bg-lime-500/30 border-lime-400/40 text-lime-200";
-    if (mins < 120) return "bg-lime-500/50 border-lime-400/60 text-white shadow-sm shadow-lime-500/20";
-    return "bg-lime-400 text-black font-extrabold border-lime-300 shadow-md shadow-lime-400/30";
+    if (mins === 0) return "bg-zinc-800/40 border-zinc-800 text-zinc-500";
+    if (mins < 30) return "bg-zinc-800 border-zinc-700 text-zinc-300";
+    if (mins < 60) return "bg-zinc-600 border-zinc-500 text-zinc-100";
+    if (mins < 120) return "bg-zinc-400 border-zinc-300 text-zinc-950 font-semibold";
+    return "bg-zinc-100 text-zinc-950 font-bold border-white";
   };
 
   return (
-    <Card className="flex flex-col justify-between">
+    <Card className="flex flex-col justify-between bg-zinc-900/60 border-zinc-800/80">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>7-Day Activity Heatmap</h3>
-          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Consistency log</p>
+          <h3 className="text-xs font-medium text-zinc-200">7-Day Heatmap</h3>
+          <p className="text-xs text-zinc-500">Weekly activity</p>
         </div>
       </div>
 
@@ -55,16 +54,16 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ history }) => {
 
           return (
             <div key={idx} className="flex flex-col items-center gap-1.5">
-              <span className="text-[10px] font-medium" style={{ color: "var(--text-secondary)" }}>{dayLabel}</span>
+              <span className="text-[10px] font-mono text-zinc-500">{dayLabel}</span>
               <div
                 title={`${format(date, "MMM dd")}: ${formatDurationSummary(mins)}`}
-                className={`w-full aspect-square rounded-xl flex flex-col items-center justify-center border transition-all duration-200 hover:scale-105 cursor-pointer ${getIntensityClass(
+                className={`w-full aspect-square rounded-xl flex flex-col items-center justify-center border transition ${getIntensityClass(
                   duration
-                )} ${isToday ? "ring-2 ring-lime-400/80 ring-offset-2 ring-offset-black" : ""}`}
+                )} ${isToday ? "ring-1 ring-zinc-300" : ""}`}
               >
-                <span className="text-xs font-bold">{dateNum}</span>
+                <span className="text-xs font-mono">{dateNum}</span>
               </div>
-              <span className="text-[9px] font-mono" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-[9px] font-mono text-zinc-500">
                 {mins > 0 ? `${mins}m` : "-"}
               </span>
             </div>

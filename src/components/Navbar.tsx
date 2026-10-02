@@ -2,8 +2,16 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
-import { Flame, Crown, Palette, Timer, BarChart2, LogOut, LogIn } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
+import { FlameIcon } from "@/components/FlameIcon";
+import {
+  Crown,
+  Palette,
+  Timer,
+  LogOut,
+  LogIn,
+} from "lucide-react";
 
 interface NavbarProps {
   user?: {
@@ -14,15 +22,17 @@ interface NavbarProps {
     role?: string;
   } | null;
   onOpenThemeModal?: () => void;
-  onOpenAnalytics?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  user,
+  user: propUser,
   onOpenThemeModal,
-  onOpenAnalytics,
 }) => {
   const [imageError, setImageError] = useState(false);
+  const pathname = usePathname();
+  const { data: session } = useSession();
+
+  const user = propUser !== undefined ? propUser : session?.user;
 
   const userInitial = user?.name
     ? user.name.trim()[0].toUpperCase()
@@ -35,112 +45,101 @@ export const Navbar: React.FC<NavbarProps> = ({
     user?.email?.toLowerCase().trim() === "vdevlekar81@gmail.com";
 
   return (
-    <header className="w-full px-4 sm:px-6 pt-2 sm:pt-4 sticky top-0 z-40 pointer-events-none">
-      <div className="max-w-4xl mx-auto bg-white text-stone-900 rounded-full px-6 sm:px-8 py-3 sm:py-3.5 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.6)] pointer-events-auto transition-all duration-300">
-        {/* Left: Brand Title */}
-        <Link href="/dashboard" className="flex items-center gap-2.5 group">
-          <div
-            style={{ color: "var(--accent-color, var(--accent-primary))" }}
-            className="p-1.5 rounded-full bg-stone-950 transition-transform group-hover:scale-105 shadow-sm"
-          >
-            <Flame className="w-4 h-4 fill-current" />
-          </div>
-          <span className="font-extrabold text-base sm:text-lg tracking-tight font-sans text-stone-950">
+    <header className="w-full px-4 sm:px-6 pt-3 sm:pt-4 sticky top-0 z-50 pointer-events-none">
+      <div className="w-full max-w-2xl sm:max-w-3xl mx-auto rounded-full bg-zinc-900/85 backdrop-blur-md text-zinc-100 px-4 sm:px-6 py-2.5 shadow-lg flex items-center justify-between pointer-events-auto transition-all border border-zinc-800/90">
+        {/* 1. Left side: Circular logo with animated living flame + FocusForge */}
+        <Link href="/dashboard" className="flex items-center gap-2.5 group select-none flex-shrink-0">
+          <FlameIcon size="sm" containerVariant="navbar" />
+          <span className="font-bold text-xs sm:text-sm tracking-tight text-zinc-100 group-hover:text-white transition-colors">
             FocusForge
           </span>
         </Link>
 
-        {/* Center: Minimal Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-stone-600">
-          <a
-            href="#stopwatch"
-            className="hover:text-stone-950 transition-colors flex items-center gap-1.5"
+        {/* 2. Center links: Stopwatch, Themes, Admin */}
+        <nav className="flex items-center gap-1.5 sm:gap-4 text-xs font-medium text-zinc-400">
+          {/* Stopwatch Link */}
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition-colors ${
+              pathname === "/dashboard"
+                ? "text-zinc-100 font-semibold bg-zinc-800/80"
+                : "hover:text-zinc-200 hover:bg-zinc-800/40"
+            }`}
           >
-            <Timer className="w-3.5 h-3.5" />
+            <Timer className="w-3.5 h-3.5 text-zinc-400" />
             <span>Stopwatch</span>
-          </a>
+          </Link>
 
+          {/* Themes */}
           <button
             type="button"
             onClick={onOpenThemeModal}
-            className="hover:text-stone-950 transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:text-zinc-200 hover:bg-zinc-800/40 transition-colors"
+            title="Theme Settings"
           >
-            <Palette
-              style={{ color: "var(--accent-color, var(--accent-primary))" }}
-              className="w-3.5 h-3.5"
-            />
+            <Palette className="w-3.5 h-3.5 text-[#42e425]" style={{ color: "var(--accent-primary, #42e425)" }} />
             <span>Themes</span>
           </button>
 
-          <a
-            href="#constellation"
-            onClick={onOpenAnalytics}
-            className="hover:text-stone-950 transition-colors flex items-center gap-1.5"
-          >
-            <BarChart2 className="w-3.5 h-3.5" />
-            <span>Analytics</span>
-          </a>
-
+          {/* Admin Link */}
           {isAdmin && (
             <Link
               href="/admin"
-              className="flex items-center gap-1 text-rose-600 font-bold hover:text-rose-700 transition-colors"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors ${
+                pathname === "/admin"
+                  ? "bg-red-950/60 text-red-400 font-semibold border border-red-800/60"
+                  : "text-red-400 hover:text-red-300 hover:bg-red-950/30"
+              }`}
             >
-              <Crown className="w-3.5 h-3.5" />
-              <span>Admin</span>
+              <Crown className="w-3.5 h-3.5 text-red-400 fill-red-400/20" />
+              <span className="font-semibold text-red-400 text-xs">Admin</span>
             </Link>
           )}
         </nav>
 
-        {/* Right: User Profile Avatar Capsule and Dark Sign In/Out Button */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* 3. Right side: Circular user avatar image & dark pill button "Sign out" */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {user ? (
             <>
-              {/* Profile Avatar Pill */}
+              {/* Circular User Avatar */}
               <button
                 type="button"
                 onClick={onOpenThemeModal}
-                className="flex items-center gap-2 p-0.5 rounded-full hover:opacity-85 transition-all shadow-sm"
-                title="Theme Engine & Profile"
+                className="flex items-center justify-center rounded-full p-0.5 hover:ring-1 hover:ring-zinc-600 transition"
+                title={user.name || user.email || "User Profile"}
               >
                 {!imageError && user.image ? (
                   <img
                     src={user.image}
-                    alt={user.name || "User Avatar"}
+                    alt={user.name || "User"}
                     onError={() => setImageError(true)}
-                    className="w-8 h-8 rounded-full object-cover border border-stone-200"
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-zinc-700 shadow-sm"
                   />
                 ) : (
-                  <div
-                    style={{ color: "var(--accent-color, var(--accent-primary))" }}
-                    className="w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center bg-stone-950 shadow-sm"
-                  >
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full font-bold text-[10px] sm:text-xs flex items-center justify-center bg-zinc-800 text-zinc-200 border border-zinc-700 shadow-sm">
                     {userInitial}
                   </div>
                 )}
               </button>
 
-              {/* Rounded Dark Sign Out Button */}
+              {/* Sign out Button */}
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: "/login" })}
-                className="bg-stone-950 hover:bg-stone-800 text-white rounded-full px-4 sm:px-5 py-2 text-xs font-semibold shadow-md active:scale-95 transition-all flex items-center gap-1.5"
-                title="Sign out of FocusForge"
+                className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-full px-2.5 sm:px-3 py-1 text-[11px] font-medium flex items-center gap-1 transition shadow-sm border border-zinc-700/60 active:scale-95"
+                title="Sign out"
               >
-                <span>Sign out</span>
-                <LogOut className="w-3 h-3 opacity-60" />
+                <span className="hidden md:inline">Sign out</span>
+                <LogOut className="w-3 h-3 text-zinc-400" />
               </button>
             </>
           ) : (
             <Link
               href="/login"
-              className="bg-stone-950 hover:bg-stone-800 text-white rounded-full px-5 py-2 text-xs font-semibold shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+              className="bg-zinc-100 hover:bg-zinc-200 text-zinc-950 rounded-full px-3 py-1 text-xs font-semibold flex items-center gap-1 transition shadow-sm active:scale-95"
             >
               <span>Login</span>
-              <LogIn
-                style={{ color: "var(--accent-color, var(--accent-primary))" }}
-                className="w-3.5 h-3.5"
-              />
+              <LogIn className="w-3 h-3" />
             </Link>
           )}
         </div>

@@ -1,21 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  Flame,
-  Target,
-  CheckCircle2,
-  Clock,
-  RefreshCw,
-} from "lucide-react";
+import React, { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { FocusTimer } from "@/components/dashboard/FocusTimer";
-import { ConstellationGrid } from "@/components/dashboard/ConstellationGrid";
-import { MediaDock } from "@/components/media/MediaDock";
+import { FocusConstellation } from "@/components/dashboard/FocusConstellation";
+import { AudioDock } from "@/components/dashboard/AudioDock";
 import { ThemeSettingsModal } from "@/components/profile/ThemeSettingsModal";
-import { ThemeProvider, useTheme } from "@/context/ThemeContext";
-import { DashboardStatsResponse } from "@/types";
-import { formatDurationSummary } from "@/lib/utils";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 interface DashboardClientProps {
   user: {
@@ -30,62 +21,14 @@ interface DashboardClientProps {
 }
 
 function DashboardContent({ user }: DashboardClientProps) {
-  const { currentTheme } = useTheme();
-  const [statsData, setStatsData] = useState<DashboardStatsResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
-
-  // Live avatar state
   const [userAvatar, setUserAvatar] = useState<string | null>(user.image || null);
-
-  // Live timer ticks
-  const [activeTimerSeconds, setActiveTimerSeconds] = useState(0);
-
-  const fetchStats = useCallback(async () => {
-    try {
-      const res = await fetch("/api/sessions");
-      if (res.ok) {
-        const data: DashboardStatsResponse = await res.json();
-        setStatsData(data);
-      }
-    } catch (err) {
-      console.error("Failed to load dashboard statistics", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  const todayStats = statsData?.todayStats ?? {
-    totalSeconds: 0,
-    targetSeconds: 7200,
-    streakCount: 0,
-    progressPercentage: 0,
-    isGoalMet: false,
-  };
-
-  const cumulativeTodaySeconds = todayStats.totalSeconds + activeTimerSeconds;
-  const targetSeconds = todayStats.targetSeconds || 7200;
-  const currentProgressPercent = Math.min(
-    Math.round((cumulativeTodaySeconds / targetSeconds) * 100),
-    100
-  );
-  const isGoalAchieved = cumulativeTodaySeconds >= targetSeconds;
-
-  const todayMinutes = Math.floor(cumulativeTodaySeconds / 60);
-  const targetMinutes = Math.floor(targetSeconds / 60);
+  const [liveSeconds, setLiveSeconds] = useState<number>(0);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [todayDailyTotal, setTodayDailyTotal] = useState<number>(0);
 
   return (
-    <div
-      style={{
-        color: "var(--text-primary)",
-      }}
-      className="min-h-screen flex flex-col justify-between transition-colors duration-250"
-    >
-      {/* 2. Floating White/Glass Capsule Navbar */}
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col justify-between font-sans relative pb-36">
       <Navbar
         user={{
           ...user,
@@ -94,215 +37,25 @@ function DashboardContent({ user }: DashboardClientProps) {
         onOpenThemeModal={() => setIsThemeModalOpen(true)}
       />
 
-      {/* Main Content Workspace */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-36 space-y-12">
-        {/* 3. Hero Focus Stopwatch with Dual-Pill Action Capsule */}
-        <section className="flex flex-col items-center justify-center">
-          <FocusTimer
-            onSessionLogged={fetchStats}
-            onActiveSecondsChange={(sec) => setActiveTimerSeconds(sec)}
-          />
-        </section>
-
-        {/* 4. Secondary Dashboard Metrics & Constellation Grid */}
-        <section className="space-y-6">
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Today's Target Progress Card */}
-            <div
-              className="theme-card p-5 sm:p-6 space-y-3.5 transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    style={{ color: "var(--accent-color, var(--accent-primary))" }}
-                    className="p-2 rounded-xl bg-white/[0.03]"
-                  >
-                    <Target className="w-4 h-4" />
-                  </div>
-                  <h3 className="text-sm font-bold tracking-tight font-sans">
-                    Today&apos;s Target
-                  </h3>
-                </div>
-
-                {isGoalAchieved ? (
-                  <span
-                    style={{
-                      color: "var(--accent-color, var(--accent-primary))",
-                      borderColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 30%, transparent)",
-                      backgroundColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 12%, transparent)",
-                    }}
-                    className="flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Achieved
-                  </span>
-                ) : (
-                  <span
-                    style={{ color: "var(--text-secondary)" }}
-                    className="text-xs font-mono font-bold"
-                  >
-                    {currentProgressPercent}%
-                  </span>
-                )}
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-2">
-                <div className="h-2 w-full rounded-full overflow-hidden bg-white/[0.04] p-0.5">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${currentProgressPercent}%`,
-                      background: isGoalAchieved
-                        ? "linear-gradient(135deg, #10B981 0%, #059669 100%)"
-                        : "var(--accent-gradient, var(--accent-color, #74EA2E))",
-                      boxShadow: isGoalAchieved
-                        ? "0 0 10px rgba(16, 185, 129, 0.5)"
-                        : "var(--accent-glow, 0 0 12px rgba(116, 234, 46, 0.5))",
-                    }}
-                  />
-                </div>
-
-                <div
-                  style={{ color: "var(--text-secondary)" }}
-                  className="flex justify-between text-xs font-sans"
-                >
-                  <span>{formatDurationSummary(todayMinutes)} completed</span>
-                  <span>Goal: {formatDurationSummary(targetMinutes)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Current Streak Card */}
-            <div
-              className="theme-card p-5 sm:p-6 flex flex-col justify-between gap-3 transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-white/[0.03] text-amber-400">
-                    <Flame className="w-4 h-4" />
-                  </div>
-                  <h3 className="text-sm font-bold tracking-tight font-sans">
-                    Current Streak
-                  </h3>
-                </div>
-
-                <span
-                  style={{
-                    color: "var(--accent-color, var(--accent-primary))",
-                    borderColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 30%, transparent)",
-                    backgroundColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 12%, transparent)",
-                  }}
-                  className="flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border shadow-sm"
-                >
-                  <span>🔥</span>
-                  <span>
-                    {todayStats.streakCount}{" "}
-                    {todayStats.streakCount === 1 ? "Day Active" : "Days Active"}
-                  </span>
-                </span>
-              </div>
-
-              <p
-                style={{ color: "var(--text-secondary)" }}
-                className="text-xs font-sans leading-relaxed"
-              >
-                Consistency ignites mastery. Log at least one uninterrupted focus block daily to protect your flame.
-              </p>
-            </div>
-          </div>
-
-          {/* 30-Day Activity Constellation Grid */}
-          <div id="constellation">
-            <ConstellationGrid
-              history={statsData?.recentHistory ?? []}
-              todayLiveSeconds={activeTimerSeconds}
-              dailyTargetSeconds={targetSeconds}
-            />
-          </div>
-
-          {/* Recent Forge Sessions Ledger */}
-          <div
-            className="theme-card p-6 space-y-4"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
-              <div className="flex items-center gap-2">
-                <Clock
-                  style={{ color: "var(--accent-color, var(--accent-primary))" }}
-                  className="w-4 h-4"
-                />
-                <h3 className="text-sm font-bold tracking-tight font-sans">
-                  Recent Forge Sessions
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={fetchStats}
-                style={{ color: "var(--text-secondary)" }}
-                className="flex items-center gap-1 text-xs hover:text-white transition font-mono"
-                title="Refresh sessions"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Sync</span>
-              </button>
-            </div>
-
-            {statsData?.recentSessions && statsData.recentSessions.length > 0 ? (
-              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                {statsData.recentSessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] text-xs transition hover:bg-white/[0.03]"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-white/90">
-                        Focus Block
-                      </span>
-                      <span
-                        style={{ color: "var(--text-secondary)" }}
-                        className="text-[10px]"
-                      >
-                        {new Date(session.startedAt).toLocaleDateString([], {
-                          month: "short",
-                          day: "numeric",
-                        })}{" "}
-                        &bull;{" "}
-                        {new Date(session.startedAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        color: "var(--accent-color, var(--accent-primary))",
-                        borderColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 30%, transparent)",
-                        backgroundColor: "color-mix(in srgb, var(--accent-color, var(--accent-primary)) 12%, transparent)",
-                      }}
-                      className="font-mono font-semibold text-xs px-2.5 py-0.5 rounded-full border shadow-sm"
-                    >
-                      {formatDurationSummary(Math.floor(session.duration / 60))}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p
-                style={{ color: "var(--text-secondary)" }}
-                className="text-xs italic py-4 text-center"
-              >
-                No sessions recorded yet today. Start the stopwatch above to forge your first block.
-              </p>
-            )}
-          </div>
-        </section>
+      {/* Main Focus Workspace */}
+      <main className="flex-1 max-w-2xl sm:max-w-3xl w-full mx-auto px-4 sm:px-6 pt-10 sm:pt-14 pb-12 space-y-8">
+        <FocusTimer
+          onActiveSecondsChange={(secs, running, dailyTotal) => {
+            setLiveSeconds(secs);
+            setIsTimerRunning(running);
+            setTodayDailyTotal(dailyTotal);
+          }}
+        />
+        <FocusConstellation
+          todayLiveSeconds={isTimerRunning ? liveSeconds : 0}
+          todayPropSeconds={todayDailyTotal + (isTimerRunning ? liveSeconds : 0)}
+        />
       </main>
 
-      {/* Floating Focus Soundscapes Media Dock */}
-      <MediaDock />
+      {/* Collapsed Bottom Soundscapes Drawer */}
+      <AudioDock />
 
-      {/* Theme Settings & Profile Modal */}
+      {/* Profile / Settings Modal */}
       <ThemeSettingsModal
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
