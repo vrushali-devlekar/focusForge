@@ -3,9 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { calculateAndUpdateStreak } from "@/lib/streak";
-import { startOfDay, subDays } from "date-fns";
+import { parseDayKey, addDays } from "@/lib/day";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -28,7 +28,8 @@ export async function GET() {
       );
     }
 
-    const todayDate = startOfDay(new Date());
+    // The browser passes its own calendar day so "today" follows the user's timezone
+    const todayDate = parseDayKey(new URL(req.url).searchParams.get("day"));
 
     // 1. Fetch Today's DailyStat
     const todayStat = await db.dailyStat.findUnique({
@@ -41,7 +42,7 @@ export async function GET() {
     });
 
     // 2. Fetch last 30 days of stats for contribution heatmap
-    const thirtyDaysAgo = startOfDay(subDays(todayDate, 29));
+    const thirtyDaysAgo = addDays(todayDate, -29);
     const recentHistory = await db.dailyStat.findMany({
       where: {
         userId: user.id,
@@ -61,7 +62,17 @@ export async function GET() {
 
     const totalSeconds = todayStat?.totalSeconds ?? 0;
     const targetSeconds = todayStat?.targetSeconds ?? 7200; // default 2 hours
-    const streakCount = todayStat?.streakCount ?? 0;
+    // Today's streakCount only becomes non-zero once today's goal is met. Until
+    // then, show the streak still alive from yesterday instead of a misleading 0.
+    let streakCount = todayStat?.streakCount ?? 0;
+    if (streakCount === 0) {
+      const yesterdayStat = recentHistory.find(
+        (stat) => stat.date.getTime() === addDays(todayDate, -1).getTime()
+      );
+      if (yesterdayStat && yesterdayStat.totalSeconds >= yesterdayStat.targetSeconds) {
+        streakCount = yesterdayStat.streakCount;
+      }
+    }
     const progressPercentage = Math.min(
       Math.round((totalSeconds / targetSeconds) * 100),
       100
@@ -124,16 +135,30 @@ export async function POST(req: Request) {
 
     const startDate = startedAt ? new Date(startedAt) : new Date(Date.now() - duration * 1000);
     const endDate = endedAt ? new Date(endedAt) : new Date();
-    const todayDate = startOfDay(new Date());
+    const todayDate = parseDayKey(body.day);
+
+    // Distraction Shield stats are optional; null means the shield was off
+    const toNonNegativeInt = (value: unknown): number | null =>
+      typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.round(value)) : null;
+    const distractionCount = toNonNegativeInt(body.distractionCount);
+    const rawAwaySeconds = toNonNegativeInt(body.awaySeconds);
+    const awaySeconds =
+      rawAwaySeconds === null ? null : Math.min(rawAwaySeconds, Math.round(duration));
 
     // 1. Create the FocusSession record
-    const focusSession = await db.focusSession.create({
-      data: {
-        userId: user.id,
-        duration: Math.round(duration),
-        startedAt: startDate,
-        endedAt: endDate,
-      },
+    const sessionData: Record<string, unknown> = {
+      userId: user.id,
+      duration: Math.round(duration),
+      startedAt: startDate,
+      endedAt: endDate,
+    };
+    if (distractionCount !== null) {
+      sessionData.distractionCount = distractionCount;
+      sessionData.awaySeconds = awaySeconds ?? 0;
+    }
+
+    const focusSession = await (db.focusSession.create as any)({
+      data: sessionData,
     });
 
     // 2. Upsert Today's DailyStat

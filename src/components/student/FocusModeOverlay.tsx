@@ -127,29 +127,11 @@ export const FocusModeOverlay: React.FC<FocusModeOverlayProps> = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
-        className="fixed inset-0 z-50 flex flex-col justify-between p-6 sm:p-8 md:p-10 select-none text-zinc-100 overflow-hidden"
+        className="fixed inset-0 z-[100] flex flex-col justify-between p-6 sm:p-8 md:p-10 pb-10 sm:pb-12 select-none text-zinc-100 overflow-hidden"
         style={{
           backgroundColor: "var(--bg-page, #070809)",
         }}
       >
-        {/* Ambient Subtle Radial Theme Backlight */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `radial-gradient(ellipse at center, var(--accent-primary, rgba(66,228,37,0.08)) 0%, transparent 65%)`,
-              opacity: isRunning ? 0.8 : 0.25,
-              transition: "opacity 0.5s ease",
-            }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `radial-gradient(circle at 50% 100%, var(--accent-primary, rgba(66,228,37,0.05)) 0%, transparent 50%)`,
-            }}
-          />
-        </div>
-
         {/* 1. Top Header Bar */}
         <header className="relative z-20 flex items-center justify-between w-full max-w-5xl mx-auto">
           {/* Status Badge */}
